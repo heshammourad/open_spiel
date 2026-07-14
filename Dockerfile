@@ -8,7 +8,6 @@ ARG NPROC=4
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
-    clang \
     git \
     curl \
     sudo \
@@ -22,10 +21,6 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set compiler to clang
-ENV CC=clang
-ENV CXX=clang++
-
 WORKDIR /app
 COPY . .
 
@@ -36,7 +31,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Compile OpenSpiel C++ core and python bindings
 RUN mkdir build && cd build \
-    && cmake -DPython3_EXECUTABLE=$(which python) -DCMAKE_CXX_COMPILER=clang++ ../open_spiel \
+    && cmake -DPython3_EXECUTABLE=$(which python) ../open_spiel \
     && make -j${NPROC}
 
 # Stage 2: Runtime image
