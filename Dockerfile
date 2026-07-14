@@ -22,7 +22,7 @@ WORKDIR /app
 COPY . .
 
 # Initialize and install requirements
-RUN ./install.sh
+RUN chmod +x ./install.sh && ./install.sh
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
