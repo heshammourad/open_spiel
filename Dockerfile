@@ -1,5 +1,5 @@
 # Stage 1: Build OpenSpiel and Python virtual environment
-FROM python:3.11-bookworm as builder
+FROM python:3.12-bookworm as builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG NPROC=4
@@ -40,12 +40,12 @@ RUN mkdir build && cd build \
     && make -j${NPROC}
 
 # Stage 2: Runtime image
-FROM python:3.11-slim-bookworm as runner
+FROM python:3.12-slim-bookworm as runner
 
 WORKDIR /app
 
 # Copy python dependencies and build directory from builder
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /app /app
 
