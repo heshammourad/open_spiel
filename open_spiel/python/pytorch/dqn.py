@@ -167,6 +167,56 @@ class MLP(nn.Module):
     return self.model(x)
 
 
+class DuelingMLP(nn.Module):
+  """A dueling network built from nn.linear layers."""
+
+  def __init__(
+      self,
+      input_size: int,
+      hidden_sizes: Iterable[int],
+      output_size: int,
+      seed: int = 42,
+  ) -> None:
+    super().__init__()
+    set_seed(seed)
+    
+    hidden_sizes_list = list(hidden_sizes)
+    if len(hidden_sizes_list) > 1:
+      shared_sizes = hidden_sizes_list[:-1]
+      last_hidden_size = hidden_sizes_list[-1]
+    else:
+      shared_sizes = []
+      last_hidden_size = hidden_sizes_list[0]
+      
+    layers = []
+    in_features = input_size
+    for size in shared_sizes:
+      layers.append(nn.Linear(in_features, size))
+      layers.append(nn.ReLU())
+      in_features = size
+      
+    self.shared_trunk = nn.Sequential(*layers) if layers else nn.Identity()
+    
+    self.value_stream = nn.Sequential(
+        nn.Linear(in_features, last_hidden_size),
+        nn.ReLU(),
+        nn.Linear(last_hidden_size, 1)
+    )
+    
+    self.advantage_stream = nn.Sequential(
+        nn.Linear(in_features, last_hidden_size),
+        nn.ReLU(),
+        nn.Linear(last_hidden_size, output_size)
+    )
+
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    features = self.shared_trunk(x)
+    values = self.value_stream(features)
+    advantages = self.advantage_stream(features)
+    return values + (advantages - advantages.mean(dim=-1, keepdim=True))
+
+
+
 class Loss(enum.StrEnum):
   MSE = "mse"
   HUBER = "huber"
@@ -237,10 +287,14 @@ class DQN(rl_agent.AbstractAgent):
       seed: int = 42,
       gradient_clipping: float | None = None,
       device: str = "cpu",
+      use_double_dqn: bool = False,
+      use_dueling: bool = False,
   ) -> None:
     """Initialize the DQN agent."""
     # This call to locals() is used to store every argument used to initialise
     # the class instance, so it can be copied with no hyperparameter change.
+    self._use_double_dqn = use_double_dqn
+    self._use_dueling = use_dueling
     self._kwargs = locals()
     # Some type checks
     assert isinstance(player_id, int | None)
@@ -288,21 +342,34 @@ class DQN(rl_agent.AbstractAgent):
     self._last_loss_value = None
 
     # Create the Q-network instances
-    self._q_network = MLP(
-        state_representation_size,
-        self._layer_sizes,
-        num_actions,
-        None,  # outputs = raw logits
-        seed=seed,
-    ).to(self._device)
-
-    self._target_q_network = MLP(
-        state_representation_size,
-        self._layer_sizes,
-        num_actions,
-        None,  # outputs = raw logits
-        seed=seed,
-    ).to(self._device)
+    if self._use_dueling:
+      self._q_network = DuelingMLP(
+          state_representation_size,
+          self._layer_sizes,
+          num_actions,
+          seed=seed,
+      ).to(self._device)
+      self._target_q_network = DuelingMLP(
+          state_representation_size,
+          self._layer_sizes,
+          num_actions,
+          seed=seed,
+      ).to(self._device)
+    else:
+      self._q_network = MLP(
+          state_representation_size,
+          self._layer_sizes,
+          num_actions,
+          None,  # outputs = raw logits
+          seed=seed,
+      ).to(self._device)
+      self._target_q_network = MLP(
+          state_representation_size,
+          self._layer_sizes,
+          num_actions,
+          None,  # outputs = raw logits
+          seed=seed,
+      ).to(self._device)
 
     self._target_q_network.load_state_dict(self._q_network.state_dict())
 
@@ -539,10 +606,22 @@ class DQN(rl_agent.AbstractAgent):
     self._target_q_values = self._target_q_network(next_info_states).detach()
 
     illegal_actions_mask = torch.logical_not(legal_actions_mask)
-    legal_target_q_values = self._target_q_values.masked_fill(
-        illegal_actions_mask, ILLEGAL_ACTION_LOGITS_PENALTY
-    )
-    max_next_q = torch.max(legal_target_q_values, dim=1)[0]
+    if self._use_double_dqn:
+      # Double DQN target calculation:
+      # 1. Select the best action using the online Q-network
+      next_q_online = self._q_network(next_info_states).detach()
+      legal_next_q_online = next_q_online.masked_fill(
+          illegal_actions_mask, ILLEGAL_ACTION_LOGITS_PENALTY
+      )
+      best_actions = torch.argmax(legal_next_q_online, dim=1, keepdim=True)
+      # 2. Evaluate the chosen action using the target Q-network
+      max_next_q = self._target_q_values.gather(dim=1, index=best_actions).squeeze(1)
+    else:
+      # Standard DQN target calculation:
+      legal_target_q_values = self._target_q_values.masked_fill(
+          illegal_actions_mask, ILLEGAL_ACTION_LOGITS_PENALTY
+      )
+      max_next_q = torch.max(legal_target_q_values, dim=1)[0]
 
     target = (
         rewards
@@ -640,11 +719,13 @@ class DQN(rl_agent.AbstractAgent):
     checkpoint = torch.load(
         data_path, weights_only=True, map_location=self._device
     )
-    self._q_network.load_state_dict(checkpoint["model_state_dict"])
-    self._target_q_network.load_state_dict(checkpoint["model_state_dict"])
+    model_key = "model" if "model" in checkpoint else "model_state_dict"
+    self._q_network.load_state_dict(checkpoint[model_key])
+    self._target_q_network.load_state_dict(checkpoint[model_key])
 
     if load_optimiser:
-      self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+      opt_key = "optimiser" if "optimiser" in checkpoint else "optimizer_state_dict"
+      self._optimizer.load_state_dict(checkpoint[opt_key])
 
     self._iteration = checkpoint["iteration"]
     self._last_loss_value = checkpoint["last_loss_value"]

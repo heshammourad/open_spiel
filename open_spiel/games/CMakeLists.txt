@@ -3,6 +3,8 @@ set(GAME_SOURCES
   amazons/amazons.h
   antichess/antichess.cc
   antichess/antichess.h
+  azul/azul.cc
+  azul/azul.h
   backgammon/backgammon.cc
   backgammon/backgammon.h
   banqi/banqi.cc
@@ -345,6 +347,10 @@ add_test(amazons_test amazons_test)
 add_executable(antichess_test antichess/antichess_test.cc ${OPEN_SPIEL_OBJECTS}
         $<TARGET_OBJECTS:tests>)
 add_test(antichess_test antichess_test)
+
+add_executable(azul_test azul/azul_test.cc ${OPEN_SPIEL_OBJECTS}
+        $<TARGET_OBJECTS:tests>)
+add_test(azul_test azul_test)
 
 add_executable(backgammon_test backgammon/backgammon_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)

@@ -1,0 +1,14 @@
+# .gcloudignore configuration to specify files not to upload to Cloud Build
+.git
+.gitignore
+.venv
+build/
+*.log
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.idea/
+.vscode/
+.DS_Store

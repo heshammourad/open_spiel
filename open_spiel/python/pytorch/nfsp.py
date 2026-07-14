@@ -418,6 +418,8 @@ class NFSP(rl_agent.AbstractAgent):
       save_optimiser (bool, optional): whether save only the optimiser or just
         the network's weights. Defaults to True.
     """
+    # Create the directory if it does not exist
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
     self._rl_agent.save(checkpoint_dir / "avg_network", save_optimiser)
     checkpoint = {
         "iteration": self._iteration,
@@ -426,7 +428,7 @@ class NFSP(rl_agent.AbstractAgent):
     }
     if save_optimiser:
       checkpoint.update({"optimiser": self._optimizer.state_dict()})
-    torch.save(checkpoint, checkpoint_dir)
+    torch.save(checkpoint, checkpoint_dir / "avg_policy.pt")
 
   def restore(
       self, checkpoint_dir: pathlib.Path, load_optimiser: bool = True
@@ -441,12 +443,12 @@ class NFSP(rl_agent.AbstractAgent):
     self._rl_agent.load(checkpoint_dir / "avg_network", load_optimiser)
 
     checkpoint = torch.load(
-        checkpoint_dir, weights_only=True, map_location=self._device
+        checkpoint_dir / "avg_policy.pt", weights_only=True, map_location=self._device
     )
-    self._avg_network.load_state_dict(checkpoint["model_state_dict"])
+    self._avg_network.load_state_dict(checkpoint["model"])
 
     if load_optimiser:
-      self._optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+      self._optimizer.load_state_dict(checkpoint["optimiser"])
 
     self._iteration = checkpoint["iteration"]
     self._last_sl_loss_value = checkpoint["last_loss_value"]

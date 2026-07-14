@@ -1,92 +1,74 @@
+# Azul AI Playroom: Reinforcement Learning in Azul
 
-<!-- disableFinding(IMAGE_ALT_TEXT_INACCESSIBLE) -->
-<!-- disableFinding(HEADING_REPEAT_H1) -->
-<!-- disableFinding(SNIPPET_INVALID_LANGUAGE) -->
-<!-- disableFinding("github") -->
-<!-- disableFinding(LINK_CL_HEAD) -->
+This repository contains custom reinforcement learning agents and search algorithms trained on the board game **Azul**, implemented using the **OpenSpiel** framework.
 
-# OpenSpiel: A Framework for Reinforcement Learning in Games
+Azul is a highly tactical, zero-sum game of perfect information. Winning against strong human players requires agents to master not just tile placement (maximizing points), but also:
+* **Hate-Drafting:** Taking tiles to deny opponents or force them into floor penalties.
+* **Tempo Control:** Timing the end of a round and securing the first-player token.
 
-[![Documentation Status](https://readthedocs.org/projects/openspiel/badge/?version=latest)](https://openspiel.readthedocs.io/en/latest/?badge=latest)
-![build_and_test](https://github.com/deepmind/open_spiel/workflows/build_and_test/badge.svg)
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org)
+---
 
-OpenSpiel is a collection of environments and algorithms for research in general
-reinforcement learning and search/planning in games. OpenSpiel supports n-player
-(single- and multi- agent) zero-sum, cooperative and general-sum, one-shot and
-sequential, strictly turn-taking and simultaneous-move, perfect and imperfect
-information games, as well as traditional multiagent environments such as
-(partially- and fully- observable) grid worlds and social dilemmas. OpenSpiel
-also includes tools to analyze learning dynamics and other common evaluation
-metrics. Games are represented as procedural extensive-form games, with some
-natural extensions. The core API and games are implemented in C++ and exposed to
-Python. Algorithms and tools are written both in C++ and Python.
+## 🏆 Agent Leaderboard & Performance
 
-To try OpenSpiel in Google Colaboratory, please refer to `open_spiel/colabs` subdirectory or start [here](https://colab.research.google.com/github/deepmind/open_spiel/blob/master/open_spiel/colabs/install_open_spiel.ipynb).
+Based on our round-robin evaluation tournaments (60 games per seat/pairing), here is the current strength of our agents:
 
-<p align="center">
-  <img src="docs/_static/OpenSpielB.png" alt="OpenSpiel visual asset">
-</p>
+| Rank | Agent Configuration | Win Rate % | Avg Score | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| **1** | **DDDQN-WinFirst-900k** | **78.2%** | 41.4 | Dueling Double DQN (256x256) with relative intermediate rewards ($R_t = r_{\text{agent}} - r_{\text{opponent}}$). Rallied by exploration reset to find advanced defensive patterns. |
+| **2** | **DQN-WinFirst-400k** | **64.8%** | 38.2 | Double DQN (256x256) trained with terminal win/loss bonuses (+10 / -10). Prioritizes winning over high absolute scores. |
+| **3** | **DDDQN-WinFirst-500k** | **51.3%** | 34.2 | Early version of Dueling Double DQN with relative rewards, before the exploration reset. |
+| **4** | **NFSP-BR (Best Response)** | **43.5%** | 21.5 | Neural Fictitious Self-Play using the reinforcement learning best-response policy. |
+| **5** | **Random Agent** | **27.8%** | 3.1 | Uniform random actions (baseline). |
+| **6** | **MCTS-50** | **5.7%** | 13.9 | Monte Carlo Tree Search running 50 simulations per move with a uniform rollout policy. |
+| **7** | **NFSP-Avg (Average Policy)** | **11.0%** | 4.9 | The average policy network trained via supervised learning in NFSP. Requires much longer training to generalize. |
 
-# Index
+> [!NOTE]
+> **The Search Advantage:** Integrating our trained value networks with tree search (`Cached-PUCT-MCTS-100`) leads to our strongest overall agent, achieving a **78% win rate** against raw DQN while running at an efficient **10 ms/move**.
 
-Please choose among the following options:
+---
 
-*   [Installing OpenSpiel](docs/install.md) (for Linux and MacOS; see separate
-    [Windows Installation](docs/windows.md) instructions.)
-*   [Introduction to OpenSpiel](docs/intro.md)
-*   [API Overview and First Example](docs/concepts.md)
-*   [API Reference](docs/api_reference.md)
-*   [Overview of Implemented Games](docs/games.md)
-*   [Overview of Implemented Algorithms](docs/algorithms.md)
-*   [Developer Guide](docs/developer_guide.md)
-*   [Using OpenSpiel as a C++ Library](docs/library.md)
-*   [Guidelines and Contributing](docs/contributing.md)
-*   [Authors](docs/authors.md)
+## 🧠 Implemented Algorithms
 
-For a longer introduction to the core concepts, formalisms, and terminology,
-including an overview of the algorithms and some results, please see
-[OpenSpiel: A Framework for Reinforcement Learning in Games](https://arxiv.org/abs/1908.09453).
+### 1. Dueling Double DQN (DDDQN)
+* **Status:** Implemented (July 12, 2026)
+* **Details:** Splits the network architecture into two streams: a state value estimator $V(s)$ and an action advantage estimator $A(s, a)$. Combined with Double DQN to mitigate Q-value overestimation bias.
+* **Reward Shaping:** Supports **Relative Intermediate Rewards** ($R_t = \text{Score}_{\text{agent}} - \text{Score}_{\text{opponent}}$) and **Win-First Terminal Rewards** to directly learn hate-drafting and defensive play.
 
-For an overview of OpenSpiel and example uses of the core API, please check out
-our tutorials:
+### 2. Monte Carlo Tree Search (MCTS / PUCT)
+* **Status:** Implemented
+* **Details:** Uses Python-based MCTS with UCT (uniform priors) and PUCT (softmax prior probabilities generated by the DQN value networks). Includes transposition caching to optimize move times.
 
-*   [Motivation, Core API, Brief Intro to Replictor Dynamics and Imperfect
-    Information Games](https://www.youtube.com/watch?v=8NCPqtPwlFQ) by Marc
-    Lanctot.
-    [(slides)](http://mlanctot.info/files/OpenSpiel_Tutorial_KU_Leuven_2022.pdf)
-    [(colab)](https://colab.research.google.com/github/deepmind/open_spiel/blob/master/open_spiel/colabs/OpenSpielTutorial.ipynb)
-*   [Motivation, Core API, Implementing CFR and REINFORCE on Kuhn poker, Leduc
-    poker, and Goofspiel](https://www.youtube.com/watch?v=o6JNHoGUXCo) by Edward
-    Lockhart.
-    [(slides)](http://mlanctot.info/files/open_spiel_tutorial-mar2021-comarl.pdf)
-    [(colab)](https://colab.research.google.com/github/deepmind/open_spiel/blob/master/open_spiel/colabs/CFR_and_REINFORCE.ipynb)
+---
 
-If you use OpenSpiel in your research, please cite the paper using the following
-BibTeX:
+## 📁 Repository Structure & Scripts
 
-```bibtex
-@article{LanctotEtAl2019OpenSpiel,
-  title     = {{OpenSpiel}: A Framework for Reinforcement Learning in Games},
-  author    = {Marc Lanctot and Edward Lockhart and Jean-Baptiste Lespiau and
-               Vinicius Zambaldi and Satyaki Upadhyay and Julien P\'{e}rolat and
-               Sriram Srinivasan and Finbarr Timbers and Karl Tuyls and
-               Shayegan Omidshafiei and Daniel Hennes and Dustin Morrill and
-               Paul Muller and Timo Ewalds and Ryan Faulkner and J\'{a}nos Kram\'{a}r
-               and Bart De Vylder and Brennan Saeta and James Bradbury and David Ding
-               and Sebastian Borgeaud and Matthew Lai and Julian Schrittwieser and
-               Thomas Anthony and Edward Hughes and Ivo Danihelka and Jonah Ryan-Davis},
-  year      = {2019},
-  eprint    = {1908.09453},
-  archivePrefix = {arXiv},
-  primaryClass = {cs.LG},
-  journal   = {CoRR},
-  volume    = {abs/1908.09453},
-  url       = {http://arxiv.org/abs/1908.09453},
-}
+To keep the workspace clean, all testing and tournament scripts are organized under the `scripts/` directory:
+
+* `azul_web_app.py` - Streamlit-based web interface to play against your trained agents.
+* `train_azul_dqn.py` - Core DQN/DDDQN training pipeline.
+* `train_azul_nfsp.py` - NFSP self-play training pipeline.
+* `scripts/`
+  * [run_azul_tournament_win_first.py](file:///E:/Documents/GitHub/open_spiel/scripts/run_azul_tournament_win_first.py) - Direct evaluation tournament of win-first agents.
+  * [test_new_strategies.py](file:///E:/Documents/GitHub/open_spiel/scripts/test_new_strategies.py) - Comparison of MCTS UCT vs PUCT (softmax) with transposition caching.
+  * [test_hybrid_vs_ddqn.py](file:///E:/Documents/GitHub/open_spiel/scripts/test_hybrid_vs_ddqn.py) - Matches between PUCT MCTS hybrid bot and raw DQN.
+  * [play_human_vs_dqn.py](file:///E:/Documents/GitHub/open_spiel/scripts/play_human_vs_dqn.py) - Command line interface to play directly against a DQN agent.
+
+---
+
+## 🚀 How to Train & Play
+
+Make sure your virtual environment is active and your `PYTHONPATH` includes the build paths:
+```powershell
+# Set PYTHONPATH (Windows PowerShell)
+$env:PYTHONPATH="E:\Documents\GitHub\open_spiel;E:\Documents\GitHub\open_spiel\build\python\Release"
 ```
 
-## Versioning
+### Train a new DDDQN Agent:
+```powershell
+.venv\Scripts\python.exe train_azul_dqn.py --use_checkpoints=True --checkpoint_dir=./checkpoints_dddqn --num_train_episodes=500000 --use_double_dqn=True --use_dueling=True --win_first_reward=True --relative_rewards=True --hidden_layers_sizes=256,256
+```
 
-We use [Semantic Versioning](https://semver.org/).
-
+### Start the Interactive Playroom (Web App):
+```powershell
+.venv\Scripts\streamlit.exe run azul_web_app.py
+```
