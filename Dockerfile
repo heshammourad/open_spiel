@@ -11,6 +11,14 @@ RUN apt-get update && apt-get install -y \
     clang \
     git \
     curl \
+    sudo \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel \
+    python3-tk \
+    python3-venv \
+    virtualenv \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
