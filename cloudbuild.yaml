@@ -1,0 +1,31 @@
+steps:
+  # Build the container image using Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '--build-arg', 'NPROC=8',
+      '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/azul-playroom:latest',
+      '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/azul-playroom:$BUILD_ID',
+      '.'
+    ]
+
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/azul-playroom:latest']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/azul-playroom:$BUILD_ID']
+
+  # Deploy the image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'azul-playroom',
+      '--image', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/azul-playroom:$BUILD_ID',
+      '--region', 'us-central1',
+      '--allow-unauthenticated'
+    ]
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+
+timeout: '1800s'
