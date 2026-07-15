@@ -14,12 +14,12 @@ Based on our round-robin evaluation tournaments (60 games per seat/pairing), her
 
 | Rank | Agent Configuration | Win Rate % | Avg Score | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| **1** | **DDDQN-WinFirst-900k** | **78.2%** | 41.4 | Dueling Double DQN (256x256) with relative intermediate rewards ($R_t = r_{\text{agent}} - r_{\text{opponent}}$). Rallied by exploration reset to find advanced defensive patterns. |
-| **2** | **DQN-WinFirst-400k** | **64.8%** | 38.2 | Double DQN (256x256) trained with terminal win/loss bonuses (+10 / -10). Prioritizes winning over high absolute scores. |
-| **3** | **DDDQN-WinFirst-500k** | **51.3%** | 34.2 | Early version of Dueling Double DQN with relative rewards, before the exploration reset. |
+| **1** | **DDDQN-WinFirst-1.3m** | **67.2%** | 40.4 | Dueling Double DQN (256x256) with relative intermediate rewards. Trained with slower epsilon decay (150k steps) to master floor line protection and avoid opponent traps. |
+| **2** | **DQN-WinFirst-400k** | **63.7%** | 38.0 | Double DQN (256x256) trained with terminal win/loss bonuses (+10 / -10). Prioritizes winning over high absolute scores. |
+| **3** | **DDDQN-WinFirst-900k** | **62.3%** | 41.3 | Early version of Dueling Double DQN with relative rewards, before the extended exploration training. |
 | **4** | **NFSP-BR (Best Response)** | **43.5%** | 21.5 | Neural Fictitious Self-Play using the reinforcement learning best-response policy. |
 | **5** | **Random Agent** | **27.8%** | 3.1 | Uniform random actions (baseline). |
-| **6** | **MCTS-50** | **5.7%** | 13.9 | Monte Carlo Tree Search running 50 simulations per move with a uniform rollout policy. |
+| **6** | **MCTS-50** | **6.8%** | 14.0 | Monte Carlo Tree Search running 50 simulations per move with a uniform rollout policy. |
 | **7** | **NFSP-Avg (Average Policy)** | **11.0%** | 4.9 | The average policy network trained via supervised learning in NFSP. Requires much longer training to generalize. |
 
 > [!NOTE]

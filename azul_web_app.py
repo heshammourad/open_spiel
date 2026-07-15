@@ -667,10 +667,10 @@ st.sidebar.markdown(f"### ◆ Game Config")
 opponent_type = st.sidebar.selectbox("Opponent Bot", ["dqn", "hybrid_mcts_dqn", "heuristic_mcts", "nfsp", "mcts", "random", "human"], index=1)
 human_seat = st.sidebar.radio("Human Seat", [0, 1], index=0)
 
-checkpoint_dir = "./checkpoints_dddqn_900k"
+checkpoint_dir = "./checkpoints_dddqn_1.3m"
 hidden_layers_sizes = [256, 256]
 if opponent_type in ["dqn", "hybrid_mcts_dqn"]:
-  checkpoint_dir = st.sidebar.text_input("DQN Checkpoint Dir", value="./checkpoints_dddqn_900k")
+  checkpoint_dir = st.sidebar.text_input("DQN Checkpoint Dir", value="./checkpoints_dddqn_1.3m")
   hidden_layers_str = st.sidebar.text_input("DQN Layers (comma-separated)", value="256,256")
   try:
     hidden_layers_sizes = [int(hs) for hs in hidden_layers_str.split(",") if hs.strip()]
